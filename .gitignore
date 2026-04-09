@@ -1,0 +1,38 @@
+# Секреты и локальная среда
+.env
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Streamlit / отладка
+.streamlit/secrets.toml
+
+# Сгенерированные артефакты
+graph.html
+*.log
+
+# Данные (крупные xlsx/csv — при необходимости положите локально, не публикуйте)
+data/*.xlsx
+data/*.csv
+!data/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store

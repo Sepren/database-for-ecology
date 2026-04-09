@@ -1,0 +1,11 @@
+streamlit
+pandas
+psycopg2-binary
+networkx
+pyvis
+pymorphy3
+matplotlib
+seaborn
+openpyxl
+transformers
+torch
