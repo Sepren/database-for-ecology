@@ -31,6 +31,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - ./:/app
       - ./data:/app/data:ro
     # При первом запуске: инициализация БД и ingest — см. README (docker compose run ...)
 

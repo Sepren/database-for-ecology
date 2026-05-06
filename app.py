@@ -341,6 +341,35 @@ def main():
             else:
                 st.warning("Колонка 'product_normalized' отсутствует.")
 
+        st.markdown("---")
+        st.markdown("**Статистика по годам для продуктовых исследований**")
+        if "product_normalized" in df_filtered.columns and "publication_year" in df_filtered.columns:
+            valid_products_mask = (
+                df_filtered["product_normalized"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .ne("")
+            )
+            yearly_product_counts = (
+                df_filtered.loc[valid_products_mask, "publication_year"]
+                .dropna()
+                .astype(int)
+                .value_counts()
+                .sort_index()
+            )
+
+            if yearly_product_counts.empty:
+                st.info("Нет данных по годам для продуктовых исследований.")
+            else:
+                st.line_chart(yearly_product_counts)
+                st.dataframe(
+                    yearly_product_counts.rename("Количество исследований").to_frame(),
+                    use_container_width=True,
+                )
+        else:
+            st.warning("Нужны колонки 'product_normalized' и 'publication_year'.")
+
 
 if __name__ == "__main__":
     main()

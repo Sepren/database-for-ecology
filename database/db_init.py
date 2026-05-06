@@ -1,35 +1,5 @@
-# #region agent log
-import json
-import os
-import sys
-import time
-from pathlib import Path
-
-_DEBUG_LOG = Path("/app/debug-8a37a8.log")
-try:
-    payload = {
-        "sessionId": "8a37a8",
-        "hypothesisId": "H1",
-        "message": "db_init before core import",
-        "data": {
-            "cwd": os.getcwd(),
-            "path0": sys.path[0] if sys.path else None,
-            "PYTHONPATH": os.environ.get("PYTHONPATH"),
-            "path_head": sys.path[:5],
-            "core_dir_exists": Path("/app/core").is_dir(),
-        },
-        "timestamp": int(time.time() * 1000),
-    }
-    _DEBUG_LOG.parent.mkdir(parents=True, exist_ok=True)
-    with open(_DEBUG_LOG, "a", encoding="utf-8") as _lf:
-        _lf.write(json.dumps(payload, ensure_ascii=False) + "\n")
-except Exception:
-    pass
-# #endregion
-
 import psycopg2
 from core.config import DB_CONFIG
-
 
 def create_table():
     print("--- 🛠 Создание ПОЛНОЙ схемы БД (Все столбцы Excel) ---")
