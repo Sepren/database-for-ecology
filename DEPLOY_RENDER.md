@@ -23,7 +23,11 @@ This guide publishes the existing Streamlit app so any user can open it by URL.
 
 1. **New** -> **Web Service** -> connect your GitHub repo.
 2. Render should detect Docker automatically (`Dockerfile`).
-3. Set environment variables in the service:
+3. Connect Postgres to the Web Service (recommended):
+   - In the Web Service settings, under **Environment**, use **Link database** / add the Postgres instance.
+   - Render will inject **`DATABASE_URL`**. The app reads it automatically — do **not** leave the DB host as `127.0.0.1` (that is only for local dev and causes `Connection refused` on Render).
+
+   **Or** set variables manually (values from the Postgres dashboard — host looks like `dpg-xxxxx-a.<region>.postgres.render.com`, never `localhost` / `127.0.0.1`):
    - `POSTGRES_HOST` = Host from Render DB
    - `POSTGRES_PORT` = Port from Render DB
    - `POSTGRES_DB` = Database name from Render DB
@@ -73,5 +77,5 @@ Notes:
 ## Common issues
 
 - **Deploy loop / crash:** check service logs and DB credentials.
-- **Connection refused:** verify `POSTGRES_HOST` and `POSTGRES_PORT`.
-- **Empty dataset:** run `db_init.py` + `ingest_data.py` in Render Shell.
+- **Connection refused to `127.0.0.1:5432`:** the Web Service is using the default local host. Link the database so `DATABASE_URL` is set, or set `POSTGRES_HOST` to Render’s Postgres hostname (see step 3).
+- **Empty dataset:** run `db_init.py` + `ingest_data.py` in Render Shell (or `scripts/seed_render_db.py` from your PC).
