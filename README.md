@@ -148,6 +148,8 @@ copy .env.example .env
 cp .env.example .env
 ```
 
+Убедитесь, что файл **сохранён на диск** перед `docker compose` (в PowerShell можно проверить: `Get-Content .env | Select-String POSTGRES_PASSWORD`). Docker читает `.env` с диска; несохранённое окно редактора не учитывается.
+
 В `.env` можно задать, например:
 
 - `POSTGRES_PASSWORD` — пароль пользователя БД (должен совпадать с тем, что ожидает `docker-compose` для сервиса `db`);
@@ -155,6 +157,9 @@ cp .env.example .env
 - `STREAMLIT_PORT` — порт веб-интерфейса (по умолчанию `8501`).
 
 Сервис `app` в Compose получает доступ к БД по имени хоста **`db`** автоматически; менять `POSTGRES_HOST` в `.env` для контейнера `app` не нужно.
+
+**Важно про пароль и порт 8501.** Один и тот же `POSTGRES_PASSWORD` из `.env` подставляется и в контейнер `db`, и в контейнер `app`. Если база уже была создана раньше с другим паролем (том `woodmind_pgdata`), смена строки в `.env` сама по себе пароль внутри Postgres не меняет: будет `password authentication failed`. Тогда либо выполните `docker compose down -v` и заново шаги с `db_init` / `ingest_data`, либо один раз синхронизируйте пароль внутри БД:  
+`docker compose exec db psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD 'ваш_пароль_из_.env';"`
 
 ### Шаг 2 — собрать образ приложения
 
@@ -236,6 +241,8 @@ docker compose logs -f app
 Чтобы приложение открывалось по постоянной ссылке для любого пользователя, разверните его в Render.
 
 - Краткая инструкция: `DEPLOY_RENDER.md`
+- Для быстрой удалённой заливки данных в Render Postgres с локальной машины:
+  `python scripts/seed_render_db.py` (при заданном `RENDER_DATABASE_URL`)
 - Итоговый адрес будет вида `https://<service-name>.onrender.com`
 
 ---

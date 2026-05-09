@@ -1,11 +1,12 @@
+# Пароль и имя БД для контейнеров берутся из файла .env (env_file),
+# а не только из подстановки ${VAR:-default}. Иначе переменная POSTGRES_*,
+# случайно заданная в PowerShell/cmd, перекрывает .env и ломает вход (8501).
+
 services:
   db:
     image: postgres:16-alpine
     container_name: woodmind-db
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-diploma}
+    env_file: .env
     ports:
       - "${POSTGRES_PUBLISH_PORT:-5432}:5432"
     volumes:
@@ -19,14 +20,13 @@ services:
   app:
     build: .
     container_name: woodmind-app
+    env_file: .env
     ports:
       - "${STREAMLIT_PORT:-8501}:8501"
     environment:
+      # В .env для локального Streamlit часто 127.0.0.1 — в Docker сеть другая:
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-diploma}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PORT: "5432"
     depends_on:
       db:
         condition: service_healthy
