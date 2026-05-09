@@ -43,6 +43,24 @@ python database/db_init.py
 python ingest_data.py
 ```
 
+### Alternative: seed Render DB from your local machine
+
+If you prefer loading data directly from your local project into Render Postgres:
+
+1. Copy External Database URL from Render Postgres.
+2. In local terminal set it as env var:
+
+```bash
+# PowerShell
+$env:RENDER_DATABASE_URL="postgres://user:pass@host:5432/dbname"
+python scripts/seed_render_db.py
+```
+
+`seed_render_db.py` will:
+- parse `RENDER_DATABASE_URL`,
+- run `database/db_init.py` against Render DB,
+- run `ingest_data.py` against Render DB.
+
 Notes:
 - `ingest_data.py` expects `data/merged_documents.xlsx`.
 - If the file is not in the deployed filesystem, upload/provide it first (or adapt ingestion source).
