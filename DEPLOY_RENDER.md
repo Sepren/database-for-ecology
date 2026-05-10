@@ -75,6 +75,7 @@ Notes:
 - `ingest_data.py` expects `data/merged_documents.xlsx`.
 - If the file is not in the deployed filesystem, upload/provide it first (or adapt ingestion source).
 - Connections from your PC to Render Postgres use TLS automatically (`sslmode=require` for hosts on `render.com`). Without SSL, you may see **server closed the connection unexpectedly**.
+- If your repo `.env` contains `POSTGRES_SSLMODE=disable` (for local Docker), it is ignored for `*.render.com` hosts so TLS is still used when seeding from your PC.
 
 ## 5) Verify app
 
