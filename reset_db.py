@@ -1,5 +1,5 @@
 import psycopg2
-from core.config import DB_CONFIG
+from core.config import psycopg2_connect_kwargs
 
 
 def reset_database():
@@ -7,7 +7,7 @@ def reset_database():
     conn = None
     try:
         # Подключаемся
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(**psycopg2_connect_kwargs())
         cur = conn.cursor()
 
         # Выполняем очистку

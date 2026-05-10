@@ -60,6 +60,12 @@ $env:RENDER_DATABASE_URL="postgres://user:pass@host:5432/dbname"
 python scripts/seed_render_db.py
 ```
 
+Or use helper script (asks URL interactively):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/seed_render_db.ps1
+```
+
 `seed_render_db.py` will:
 - parse `RENDER_DATABASE_URL`,
 - run `database/db_init.py` against Render DB,
@@ -68,6 +74,7 @@ python scripts/seed_render_db.py
 Notes:
 - `ingest_data.py` expects `data/merged_documents.xlsx`.
 - If the file is not in the deployed filesystem, upload/provide it first (or adapt ingestion source).
+- Connections from your PC to Render Postgres use TLS automatically (`sslmode=require` for hosts on `render.com`). Without SSL, you may see **server closed the connection unexpectedly**.
 
 ## 5) Verify app
 

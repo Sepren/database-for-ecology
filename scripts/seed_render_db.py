@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 from urllib.parse import urlparse
 
 
@@ -41,11 +42,22 @@ def _ensure_postgres_env() -> None:
 
 def _run_step(cmd: list[str]) -> None:
     print(f"-> {' '.join(cmd)}")
-    subprocess.run(cmd, check=True, env=os.environ.copy())
+    env = os.environ.copy()
+    project_root = str(Path(__file__).resolve().parent.parent)
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = project_root if not existing else f"{project_root}{os.pathsep}{existing}"
+    subprocess.run(cmd, check=True, env=env)
 
 
 def main() -> int:
     try:
+        local_xlsx = Path("data/merged_documents.xlsx")
+        if not local_xlsx.exists():
+            raise FileNotFoundError(
+                "Local dataset not found: data/merged_documents.xlsx. "
+                "Run this script from repository root where the file exists."
+            )
+
         _ensure_postgres_env()
         print("Target DB:")
         print(f"  host={os.environ.get('POSTGRES_HOST')} port={os.environ.get('POSTGRES_PORT')}")
