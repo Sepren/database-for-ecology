@@ -1,7 +1,8 @@
 import pandas as pd
 import psycopg2
+import sys
 from psycopg2.extras import execute_values
-from core.config import DB_CONFIG
+from core.config import psycopg2_connect_kwargs
 from agents.analyst_agent import AnalystAgent
 import os
 import re
@@ -77,7 +78,7 @@ def run():
             df_clean['trl_level'] = df_clean['trl_level'].apply(force_to_trl)
 
         # Подготовка к БД
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(**psycopg2_connect_kwargs())
         cur = conn.cursor()
 
         # Список ВСЕХ колонок, которые мы создали в Шаге 1
@@ -101,12 +102,16 @@ def run():
 
         print(f"🚀 Вставка {len(data_values)} строк со всеми столбцами...")
         query = f"INSERT INTO biorefinery_data_clean ({', '.join(db_cols)}) VALUES %s"
-        execute_values(cur, query, data_values)
+        batch = 2000
+        for i in range(0, len(data_values), batch):
+            chunk = data_values[i : i + batch]
+            execute_values(cur, query, chunk)
         conn.commit()
         print("✅ УСПЕХ!")
 
     except Exception as e:
         print(f"❌ Ошибка: {e}")
+        sys.exit(1)
     finally:
         if 'conn' in locals(): conn.close()
 

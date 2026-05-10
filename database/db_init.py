@@ -1,5 +1,7 @@
+import sys
+
 import psycopg2
-from core.config import DB_CONFIG
+from core.config import psycopg2_connect_kwargs
 
 def create_table():
     print("--- 🛠 Создание ПОЛНОЙ схемы БД (Все столбцы Excel) ---")
@@ -48,7 +50,7 @@ def create_table():
 
     conn = None
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(**psycopg2_connect_kwargs())
         cur = conn.cursor()
         for command in commands:
             cur.execute(command)
@@ -57,6 +59,7 @@ def create_table():
         print("✅ Таблица успешно расширена под все столбцы!")
     except Exception as error:
         print(f"❌ Ошибка БД: {error}")
+        sys.exit(1)
     finally:
         if conn is not None: conn.close()
 
