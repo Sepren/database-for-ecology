@@ -46,14 +46,24 @@ def _db_config_from_url(url: str) -> dict:
 
 
 def _default_sslmode_for_host(host: str) -> Optional[str]:
-    """Render Postgres requires TLS for external connections from your PC."""
+    """Managed Postgres endpoints need TLS even if .env disables SSL for local Docker."""
+    is_cloud_managed = ("render.com" in host or "neon.tech" in host)
     explicit = os.environ.get("POSTGRES_SSLMODE", "").strip()
+    lowered = explicit.lower()
+
+    if is_cloud_managed:
+        # Local .env often sets POSTGRES_SSLMODE=disable for docker-compose Postgres.
+        # That must NOT apply to Render / Neon hosts or connections drop immediately.
+        if lowered == "disable":
+            return "require"
+        if explicit:
+            return explicit if lowered != "disable" else "require"
+        return "require"
+
     if explicit:
-        return explicit if explicit.lower() != "disable" else None
+        return explicit if lowered != "disable" else None
     if host in ("127.0.0.1", "localhost", "::1"):
         return None
-    if "render.com" in host:
-        return "require"
     return None
 
 
@@ -87,8 +97,11 @@ DB_CONFIG = _build_db_config()
 
 def psycopg2_connect_kwargs() -> dict:
     """Arguments for psycopg2.connect(**kwargs) including optional sslmode."""
-    keys = ("host", "database", "user", "password", "port", "sslmode")
-    return {k: DB_CONFIG[k] for k in keys if k in DB_CONFIG and DB_CONFIG[k] is not None}
+    keys = ("host", "database", "user", "password", "port", "sslmode", "connect_timeout")
+    out = {k: DB_CONFIG[k] for k in keys if k in DB_CONFIG and DB_CONFIG[k] is not None}
+    if "connect_timeout" not in out:
+        out["connect_timeout"] = 60
+    return out
 
 
 def sqlalchemy_database_url() -> str:
