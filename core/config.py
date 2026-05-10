@@ -100,7 +100,15 @@ def psycopg2_connect_kwargs() -> dict:
     keys = ("host", "database", "user", "password", "port", "sslmode", "connect_timeout")
     out = {k: DB_CONFIG[k] for k in keys if k in DB_CONFIG and DB_CONFIG[k] is not None}
     if "connect_timeout" not in out:
-        out["connect_timeout"] = 60
+        out["connect_timeout"] = 120
+    host = str(DB_CONFIG.get("host", ""))
+    if "render.com" in host or "neon.tech" in host:
+        out["keepalives"] = 1
+        out["keepalives_idle"] = 30
+        out["keepalives_interval"] = 10
+        out["keepalives_count"] = 5
+        # DDL from a home PC over TLS can exceed default timeouts on managed Postgres.
+        out["options"] = "-c statement_timeout=600000 -c lock_timeout=120000"
     return out
 
 
