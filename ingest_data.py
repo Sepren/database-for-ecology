@@ -80,6 +80,13 @@ def run():
         # Подготовка к БД
         conn = psycopg2.connect(**psycopg2_connect_kwargs())
         cur = conn.cursor()
+        # Удалённые БД (Render): толстые строки + большие батчи иначе рвут канал или ловят timeout.
+        try:
+            cur.execute("SET statement_timeout = %s", ("30min",))
+            cur.execute("SET lock_timeout = %s", ("2min",))
+        except Exception:
+            conn.rollback()
+            cur = conn.cursor()
 
         # Список ВСЕХ колонок, которые мы создали в Шаге 1
         db_cols = [
@@ -102,11 +109,13 @@ def run():
 
         print(f"🚀 Вставка {len(data_values)} строк со всеми столбцами...")
         query = f"INSERT INTO biorefinery_data_clean ({', '.join(db_cols)}) VALUES %s"
-        batch = 2000
+        batch = 300
         for i in range(0, len(data_values), batch):
             chunk = data_values[i : i + batch]
-            execute_values(cur, query, chunk)
-        conn.commit()
+            execute_values(cur, query, chunk, page_size=100)
+            conn.commit()
+            if (i // batch + 1) % 10 == 0 or i + batch >= len(data_values):
+                print(f"   … загружено {min(i + batch, len(data_values))}/{len(data_values)}")
         print("✅ УСПЕХ!")
 
     except Exception as e:
