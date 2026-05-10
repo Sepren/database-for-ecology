@@ -5,14 +5,35 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
+def _normalize_database_url(raw: str) -> str:
+    raw = (raw or "").strip().strip('"').strip("'")
+    # PowerShellsometimes leaves odd whitespace or BOM.
+    raw = raw.lstrip("\ufeff")
+    low = raw.lower()
+    if low.startswith("postgres://") or low.startswith("postgresql://"):
+        return raw
+    # user:pass@host:port/db形式 (без схемы)
+    if "@" in raw and "/" in raw.split("@", maxsplit=1)[-1] and "://" not in raw.split("@", maxsplit=1)[0]:
+        return "postgresql://" + raw
+    return raw
+
+
 def _apply_database_url(env_var_name: str) -> bool:
     raw = os.environ.get(env_var_name)
     if not raw:
         return False
 
+    raw = _normalize_database_url(raw)
+    os.environ[env_var_name] = raw
+
     parsed = urlparse(raw)
     if parsed.scheme not in ("postgres", "postgresql"):
-        raise ValueError(f"{env_var_name} must start with postgres:// or postgresql://")
+        snippet = raw[:48] + ("…" if len(raw) > 48 else "")
+        raise ValueError(
+            f"{env_var_name} must use scheme postgres:// or postgresql:// "
+            f"(got scheme={parsed.scheme!r}, start={snippet!r}). "
+            'PowerShell: $env:RENDER_DATABASE_URL="postgresql://USER:PASS@HOST:5432/DB"'
+        )
 
     if not parsed.hostname or not parsed.path:
         raise ValueError(f"{env_var_name} is missing host/database")
