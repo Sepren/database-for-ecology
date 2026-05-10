@@ -51,11 +51,11 @@ def create_table():
     conn = None
     try:
         conn = psycopg2.connect(**psycopg2_connect_kwargs())
-        cur = conn.cursor()
-        for command in commands:
-            cur.execute(command)
-        conn.commit()
-        cur.close()
+        # Каждый DDL отдельно: меньше риска обрыва длинной транзакцией через интернет/TLS (Render).
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            for command in commands:
+                cur.execute(command)
         print("✅ Таблица успешно расширена под все столбцы!")
     except Exception as error:
         print(f"❌ Ошибка БД: {error}")
