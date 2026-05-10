@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 import psycopg2
 import sys
@@ -77,16 +79,15 @@ def run():
         if 'trl_level' in df_clean.columns:
             df_clean['trl_level'] = df_clean['trl_level'].apply(force_to_trl)
 
-        # Подготовка к БД
+        # Подготовка к БД (autocommit: короткие транзакции на батч — меньше «open transaction» при обрыве канала)
         conn = psycopg2.connect(**psycopg2_connect_kwargs())
+        conn.autocommit = True
         cur = conn.cursor()
-        # Удалённые БД (Render): толстые строки + большие батчи иначе рвут канал или ловят timeout.
         try:
-            cur.execute("SET statement_timeout = %s", ("30min",))
+            cur.execute("SET statement_timeout = %s", ("10min",))
             cur.execute("SET lock_timeout = %s", ("2min",))
         except Exception:
-            conn.rollback()
-            cur = conn.cursor()
+            pass
 
         # Список ВСЕХ колонок, которые мы создали в Шаге 1
         db_cols = [
@@ -109,13 +110,38 @@ def run():
 
         print(f"🚀 Вставка {len(data_values)} строк со всеми столбцами...")
         query = f"INSERT INTO biorefinery_data_clean ({', '.join(db_cols)}) VALUES %s"
-        batch = 300
+        batch = 25
+        connect_kw = psycopg2_connect_kwargs()
         for i in range(0, len(data_values), batch):
             chunk = data_values[i : i + batch]
-            execute_values(cur, query, chunk, page_size=100)
-            conn.commit()
-            if (i // batch + 1) % 10 == 0 or i + batch >= len(data_values):
-                print(f"   … загружено {min(i + batch, len(data_values))}/{len(data_values)}")
+            last_err = None
+            for attempt in range(1, 8):
+                try:
+                    if conn.closed:
+                        conn = psycopg2.connect(**connect_kw)
+                        conn.autocommit = True
+                        cur = conn.cursor()
+                        try:
+                            cur.execute("SET statement_timeout = %s", ("10min",))
+                        except Exception:
+                            pass
+                    execute_values(cur, query, chunk, page_size=min(25, len(chunk)))
+                    break
+                except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                    last_err = e
+                    time.sleep(min(2**attempt, 30))
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                    conn = psycopg2.connect(**connect_kw)
+                    conn.autocommit = True
+                    cur = conn.cursor()
+            else:
+                raise last_err
+            done = min(i + batch, len(data_values))
+            if done % 500 == 0 or done == len(data_values):
+                print(f"   … загружено {done}/{len(data_values)}")
         print("✅ УСПЕХ!")
 
     except Exception as e:
