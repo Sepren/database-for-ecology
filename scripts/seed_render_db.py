@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 def _normalize_database_url(raw: str) -> str:
     raw = (raw or "").strip().strip('"').strip("'")
-    # PowerShellsometimes leaves odd whitespace or BOM.
+    # PowerShell sometimes leaves odd whitespace or BOM.
     raw = raw.lstrip("\ufeff")
     low = raw.lower()
     if low.startswith("postgres://") or low.startswith("postgresql://"):

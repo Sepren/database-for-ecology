@@ -68,10 +68,21 @@ def run():
         df = df.rename(columns=rename_map)
         df['source_file'] = 'merged_documents.xlsx'
 
-        # Агент (Нормализация)
-        print("🤖 Агент работает...")
-        agent = AnalystAgent()
-        df_clean, _ = agent.execute(df)
+        # Нормализация данных: извлекаем методы, продукты и TRL из текста.
+        print("⏳ Нормализация AnalystAgent...")
+        df_clean = df.copy()
+        if 'method_normalized' not in df_clean.columns:
+            df_clean['method_normalized'] = None
+        if 'product_normalized' not in df_clean.columns:
+            df_clean['product_normalized'] = None
+
+        # Выполняем нормализацию через аналитического агента
+        try:
+            agent = AnalystAgent()
+            df_clean, _ = agent.execute(df_clean)
+        except Exception as e:
+            print(f"⚠️ Ошибка нормализации AnalystAgent: {e}")
+            print("Продолжаем загрузку без нормализации.")
 
         # Очистка типов
         if 'publication_year' in df_clean.columns:
