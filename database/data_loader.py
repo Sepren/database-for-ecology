@@ -74,7 +74,7 @@ class DataLoader:
                 # ВНИМАНИЕ: Если используете pandas старой версии, engine='postgresql' не нужен,
                 # но для new pandas лучше использовать SQLAlchemy.
                 # Пока оставляем старый метод, он работает, просто ругается.
-                query = "SELECT * FROM biorefinery_data_clean LIMIT 500"
+                query = "SELECT * FROM biorefinery_data_clean"
                 df = pd.read_sql(query, self.connection)
                 self.connection.close()
             except Exception as e:
