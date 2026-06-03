@@ -13,6 +13,10 @@ FOCUS_GRAPH_EDGE_PREVIEW = 150
 # Первая порция строк на вкладке «База знаний» (ускоряет отрисовку)
 KB_PREVIEW_ROWS = 200
 
+# Загружать в память не весь датасет, а выборку
+DEFAULT_LOAD_LIMIT = 200
+MAX_LOAD_LIMIT = 1000
+
 
 def _method_product_tokens(val) -> list:
     if pd.isna(val) or not str(val).strip():
@@ -76,21 +80,36 @@ def subset_incident_edges_budget(df: pd.DataFrame, focus: str, max_edges: int) -
 def main():
     st.title("🌲 WoodMind: Система анализа биорефайнинга")
 
+    st.sidebar.header("📦 Объём данных")
+    load_choice = st.sidebar.selectbox(
+        "Сколько строк загружать из базы",
+        ["50 строк", "200 строк", "500 строк", "1000 строк", "Все строки"],
+        index=1,
+        help="Больше строк = больше данных и более широкий диапазон годов / TRL, но медленнее загрузка.",
+    )
+    load_limit = {
+        "50 строк": 50,
+        "200 строк": 200,
+        "500 строк": 500,
+        "1000 строк": 1000,
+        "Все строки": 0,
+    }[load_choice]
+
     # 2. Загрузка данных
     @st.cache_data(ttl=600)
-    def load_data():
+    def load_data(limit):
         try:
             # Напрямую грузим данные, минуя тяжелый пайплайн
             loader = DataLoader()
-            df = loader.load_data() 
-            if df is not None and not df.empty:
-                df = df.head(50) # Жесткий лимит для диплома!
+            df = loader.load_data()
+            if df is not None and not df.empty and limit > 0:
+                df = df.head(limit)
             return df
         except Exception as e:
             st.error(f"Ошибка прямой загрузки: {e}")
             return pd.DataFrame()
 
-    df = load_data()
+    df = load_data(load_limit)
     if df is None or df.empty:
         st.warning("База данных пуста! Запустите reset_db.py и ingest_data.py")
         return
