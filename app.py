@@ -76,12 +76,12 @@ def main():
     st.title("🌲 WoodMind: Система анализа биорефайнинга")
 
     # 2. Загрузка данных
-    @st.cache_data
-    def load_data(ttl=600):
+    @st.cache_data(ttl=600)
+    def load_data():
         orch = Orchestrator()
         df, _ = orch.run_pipeline()
         if df is not None and not df.empty:
-            df = df.head(300)  # Жестко ограничиваем объем на выходе конвейера
+            df = df.head(100)  # Жестко ограничиваем объем на выходе конвейера
         return df
 
     try:
@@ -269,7 +269,7 @@ def main():
         focus_node = None
 
         if focus_mode == "Все связи":
-            df_for_graph = df_filtered.head(150)
+            df_for_graph = df_filtered.head(10)
             focus_node = None
             if len(df_filtered) > 150:
                 st.info(
