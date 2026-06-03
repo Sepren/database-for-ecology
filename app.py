@@ -77,9 +77,11 @@ def main():
 
     # 2. Загрузка данных
     @st.cache_data
-    def load_data():
+    def load_data(ttl=600):
         orch = Orchestrator()
         df, _ = orch.run_pipeline()
+        if df is not None and not df.empty:
+            df = df.head(300)  # Жестко ограничиваем объем на выходе конвейера
         return df
 
     try:
@@ -140,7 +142,7 @@ def main():
     # 3. Поиск (ищет везде)
     if search_query:
         mask = df_filtered.astype(str).apply(lambda x: x.str.contains(search_query, case=False)).any(axis=1)
-        df_filtered = df_filtered[mask]
+        df_filtered = df_filtered[mask].head(300)
 
     # Вывод количества найденного
     st.sidebar.markdown(f"**Найдено записей:** {len(df_filtered)}")
