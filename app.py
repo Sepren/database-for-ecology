@@ -13,10 +13,6 @@ FOCUS_GRAPH_EDGE_PREVIEW = 150
 # Первая порция строк на вкладке «База знаний» (ускоряет отрисовку)
 KB_PREVIEW_ROWS = 200
 
-# Загружать в память не весь датасет, а выборку
-DEFAULT_LOAD_LIMIT = 200
-MAX_LOAD_LIMIT = 1000
-
 
 def _method_product_tokens(val) -> list:
     if pd.isna(val) or not str(val).strip():
@@ -167,7 +163,7 @@ def main():
     # 3. Поиск (ищет везде)
     if search_query:
         mask = df_filtered.astype(str).apply(lambda x: x.str.contains(search_query, case=False)).any(axis=1)
-        df_filtered = df_filtered[mask].head(300)
+        df_filtered = df_filtered[mask]
 
     # Вывод количества найденного
     st.sidebar.markdown(f"**Найдено записей:** {len(df_filtered)}")
@@ -294,13 +290,10 @@ def main():
         focus_node = None
 
         if focus_mode == "Все связи":
-            df_for_graph = df_filtered.head(10)
+            df_for_graph = df_filtered
             focus_node = None
-            if len(df_filtered) > 150:
-                st.info(
-                    "💡 Режим «Все связи»: для скорости показаны только первые 150 записей выборки. "
-                    "Выберите узел слева, чтобы увидеть его окружение."
-                )
+            st.info(
+                "💡 Режим «Все связи»: показан полный набор данных, фильтры отражают весь доступный год и TRL.")
         elif graph_df_focus_full is None or graph_df_focus_full.empty:
             st.warning(f"Нет записей, где встречается узел «{focus_mode}» (с учётом фильтров слева).")
         else:
