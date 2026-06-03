@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from core.orchestrator import Orchestrator
+# from core.orchestrator import Orchestrator
+from core.data_loader import DataLoader
 from ui.graph_visualizer import GraphVisualizer
 
 # 1. Настройка страницы
@@ -78,19 +79,19 @@ def main():
     # 2. Загрузка данных
     @st.cache_data(ttl=600)
     def load_data():
-        orch = Orchestrator()
-        df, _ = orch.run_pipeline()
-        if df is not None and not df.empty:
-            df = df.head(100)  # Жестко ограничиваем объем на выходе конвейера
-        return df
+        try:
+            # Напрямую грузим данные, минуя тяжелый пайплайн
+            loader = DataLoader()
+            df = loader.load_data() 
+            if df is not None and not df.empty:
+                df = df.head(50) # Жесткий лимит для диплома!
+            return df
+        except Exception as e:
+            st.error(f"Ошибка прямой загрузки: {e}")
+            return pd.DataFrame()
 
-    try:
-        df = load_data()
-    except Exception as e:
-        st.error(f"Ошибка подключения к БД: {e}")
-        return
-
-    if df.empty:
+    df = load_data()
+    if df is None or df.empty:
         st.warning("База данных пуста! Запустите reset_db.py и ingest_data.py")
         return
 
@@ -309,11 +310,14 @@ def main():
 
         try:
             if df_for_graph is not None and not df_for_graph.empty:
-                viz = GraphVisualizer()
-                path = viz.generate_html(df_for_graph, focus_node=focus_node)
-                viz.display(path)
+                # ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ЗАЩИТЫ (Экономия памяти)
+                # viz = GraphVisualizer()
+                # path = viz.generate_html(df_for_graph, focus_node=focus_node)
+                # viz.display(path)
+                st.info("Временно отключено для демонстрации (экономия памяти сервера).")
+                st.dataframe(df_for_graph) # Просто покажем таблицу связей
         except Exception as e:
-            st.warning(f"Граф пока не готов (нет данных для связей): {e}")
+            st.warning(f"Граф пока не готов: {e}")
 
     # Вкладка 3: СТАТИСТИКА (Исправленная)
     with tabs[2]:
