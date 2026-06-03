@@ -73,7 +73,7 @@ def main():
             if 'trl' in df.columns:
                 try:
                     fig = px.bar(df['trl'].value_counts(), title="Уровень тех. готовности")
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                 except Exception as ex:
                     st.error(f"Ошибка графика TRL: {ex}")
             else:
