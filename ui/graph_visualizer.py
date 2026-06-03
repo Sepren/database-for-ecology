@@ -4,7 +4,14 @@ import os
 
 
 class GraphVisualizer:
-    def generate_html(self, df, focus_node=None):
+    def generate_html(self, df, focus_node=None, out_path="graph.html", force=False):
+        # Если файл уже есть и не требуется форсировать, возвращаем кэш
+        try:
+            if not force and out_path and os.path.exists(out_path):
+                return out_path
+        except Exception:
+            pass
+
         from pyvis.network import Network
         net = Network(height="750px", width="100%", bgcolor="#ffffff", font_color="black")
 
@@ -67,9 +74,18 @@ class GraphVisualizer:
                     w = 3 if focus_node and (m == focus_node or p == focus_node) else 1
                     net.add_edge(m, p, color="#BDC3C7", width=w)
 
-        path = "graph.html"
-        net.save_graph(path)
-        return path
+        path = out_path or "graph.html"
+        try:
+            net.save_graph(path)
+            return path
+        except Exception as e:
+            # Попытка сохранить во временный файл
+            try:
+                tmp = "graph_tmp.html"
+                net.save_graph(tmp)
+                return tmp
+            except Exception:
+                raise e
 
     def display(self, html_path):
         """Отображает HTML внутри Streamlit"""

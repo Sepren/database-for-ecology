@@ -329,12 +329,62 @@ def main():
 
         try:
             if df_for_graph is not None and not df_for_graph.empty:
-                # ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ЗАЩИТЫ (Экономия памяти)
-                # viz = GraphVisualizer()
-                # path = viz.generate_html(df_for_graph, focus_node=focus_node)
-                # viz.display(path)
-                st.info("Временно отключено для демонстрации (экономия памяти сервера).")
-                st.dataframe(df_for_graph) # Просто покажем таблицу связей
+                # Оцениваем примерный размер графа (уникальные узлы)
+                methods = set()
+                products = set()
+                for _, r in df_for_graph.iterrows():
+                    for m in str(r.get("method_normalized", "")).split(","):
+                        m = m.strip()
+                        if m:
+                            methods.add(m)
+                    for p in str(r.get("product_normalized", "")).split(","):
+                        p = p.strip()
+                        if p:
+                            products.add(p)
+
+                est_nodes = len(methods) + len(products)
+
+                # Режимы: автопостроение при небольшом графе, иначе кнопка-ручной запуск
+                auto_render_threshold = 150
+                allow_render = est_nodes <= auto_render_threshold
+
+                st.markdown(f"**Оценка размера графа:** {est_nodes} узлов (методов+продуктов)")
+                if not allow_render:
+                    st.warning(
+                        f"Граф большой ({est_nodes} узлов). Для экономии ресурсов нажмите кнопку 'Построить граф' вручную."
+                    )
+
+                build_now = allow_render or st.button("Построить граф")
+
+                if build_now:
+                    with st.spinner("Построение интерактивного графа (может занять время)..."):
+                        try:
+                            # Кэшируем результат по хэшу данных + фокусу
+                            import os, hashlib, json, re
+
+                            os.makedirs("static", exist_ok=True)
+
+                            def _safe_name(s: str) -> str:
+                                return re.sub(r"[^0-9a-zA-Z_-]", "_", s)[:100]
+
+                            hasher = hashlib.md5()
+                            # Хэшируем ключевые пары строк для стабильности
+                            rows = []
+                            for _, r in df_for_graph.iterrows():
+                                rows.append(f"{r.get('method_normalized','')}|{r.get('product_normalized','')}")
+                            hasher.update("\n".join(rows).encode("utf-8"))
+                            hasher.update(str(bool(focus_node)).encode("utf-8"))
+                            fname = f"graph_{hasher.hexdigest()}_{_safe_name(str(focus_node or 'all'))}.html"
+                            cache_path = os.path.join("static", fname)
+
+                            viz = GraphVisualizer()
+                            path = viz.generate_html(df_for_graph, focus_node=focus_node, out_path=cache_path)
+                            viz.display(path)
+                        except Exception as e:
+                            st.error(f"Ошибка построения графа: {e}")
+                            st.dataframe(df_for_graph)
+                else:
+                    st.dataframe(df_for_graph)
         except Exception as e:
             st.warning(f"Граф пока не готов: {e}")
 
