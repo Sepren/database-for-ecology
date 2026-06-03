@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 # from core.orchestrator import Orchestrator
-from core.data_loader import DataLoader
+from database.data_loader import DataLoader
 from ui.graph_visualizer import GraphVisualizer
 
 # 1. Настройка страницы

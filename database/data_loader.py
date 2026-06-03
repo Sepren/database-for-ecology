@@ -1,7 +1,7 @@
 import pandas as pd
 import psycopg2
 import os
-from config import DB_CONFIG, LOCAL_DATA_PATH
+from core.config import DB_CONFIG, LOCAL_DATA_PATH
 import warnings
 
 # Игнорируем предупреждение Pandas о SQL (чтобы не засоряло консоль)
@@ -74,7 +74,7 @@ class DataLoader:
                 # ВНИМАНИЕ: Если используете pandas старой версии, engine='postgresql' не нужен,
                 # но для new pandas лучше использовать SQLAlchemy.
                 # Пока оставляем старый метод, он работает, просто ругается.
-                query = "SELECT * FROM biorefinery_data LIMIT 500"
+                query = "SELECT * FROM biorefinery_data_clean LIMIT 500"
                 df = pd.read_sql(query, self.connection)
                 self.connection.close()
             except Exception as e:
