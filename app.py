@@ -13,6 +13,10 @@ FOCUS_GRAPH_EDGE_PREVIEW = 150
 # Первая порция строк на вкладке «База знаний» (ускоряет отрисовку)
 KB_PREVIEW_ROWS = 200
 
+# Загружать в память не весь датасет, а выборку
+DEFAULT_LOAD_LIMIT = 200
+MAX_LOAD_LIMIT = 1000
+
 
 def _method_product_tokens(val) -> list:
     if pd.isna(val) or not str(val).strip():
@@ -80,7 +84,7 @@ def main():
     load_choice = st.sidebar.selectbox(
         "Сколько строк загружать из базы",
         ["50 строк", "200 строк", "500 строк", "1000 строк", "Все строки"],
-        index=2,
+        index=1,
         help="Больше строк = больше данных и более широкий диапазон годов / TRL, но медленнее загрузка.",
     )
     load_limit = {
@@ -91,28 +95,21 @@ def main():
         "Все строки": 0,
     }[load_choice]
 
-    if load_choice == "Все строки":
-        st.sidebar.warning(
-            "Загружается полный набор данных. Это может занять некоторое время, особенно на Render."
-        )
-
     # 2. Загрузка данных
     @st.cache_data(ttl=600)
     def load_data(limit):
         try:
             # Напрямую грузим данные, минуя тяжелый пайплайн
             loader = DataLoader()
-            df_all = loader.load_data()
-            if df_all is not None and not df_all.empty and limit > 0:
-                df = df_all.head(limit)
-            else:
-                df = df_all
-            return df_all, df
+            df = loader.load_data()
+            if df is not None and not df.empty and limit > 0:
+                df = df.head(limit)
+            return df
         except Exception as e:
             st.error(f"Ошибка прямой загрузки: {e}")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame()
 
-    df_all, df = load_data(load_limit)
+    df = load_data(load_limit)
     if df is None or df.empty:
         st.warning("База данных пуста! Запустите reset_db.py и ingest_data.py")
         return
@@ -124,9 +121,9 @@ def main():
     search_query = st.sidebar.text_input("Поиск (по всем полям)", "")
 
     # Фильтр по годам
-    if 'publication_year' in df_all.columns and df_all['publication_year'].notna().any():
-        min_year = int(df_all['publication_year'].min())
-        max_year = int(df_all['publication_year'].max())
+    if 'publication_year' in df.columns and df['publication_year'].notna().any():
+        min_year = int(df['publication_year'].min())
+        max_year = int(df['publication_year'].max())
         if min_year < max_year:
             years = st.sidebar.slider("Год публикации", min_year, max_year, (min_year, max_year))
         else:
@@ -136,8 +133,8 @@ def main():
 
     # Фильтр по TRL
     available_trls = []
-    if 'trl_level' in df_all.columns:
-        available_trls = sorted(df_all['trl_level'].dropna().unique())
+    if 'trl_level' in df.columns:
+        available_trls = sorted(df['trl_level'].dropna().unique())
     trl_filter = st.sidebar.multiselect("Уровень TRL", available_trls, default=available_trls)
 
     # По умолчанию — полная таблица; снимите галочку для компактного вида (5 столбцов)
@@ -165,7 +162,7 @@ def main():
     # 3. Поиск (ищет везде)
     if search_query:
         mask = df_filtered.astype(str).apply(lambda x: x.str.contains(search_query, case=False)).any(axis=1)
-        df_filtered = df_filtered[mask]
+        df_filtered = df_filtered[mask].head(300)
 
     # Вывод количества найденного
     st.sidebar.markdown(f"**Найдено записей:** {len(df_filtered)}")
@@ -292,10 +289,13 @@ def main():
         focus_node = None
 
         if focus_mode == "Все связи":
-            df_for_graph = df_filtered
+            df_for_graph = df_filtered.head(10)
             focus_node = None
-            st.info(
-                "💡 Режим «Все связи»: показан полный набор данных, фильтры отражают весь доступный год и TRL.")
+            if len(df_filtered) > 150:
+                st.info(
+                    "💡 Режим «Все связи»: для скорости показаны только первые 150 записей выборки. "
+                    "Выберите узел слева, чтобы увидеть его окружение."
+                )
         elif graph_df_focus_full is None or graph_df_focus_full.empty:
             st.warning(f"Нет записей, где встречается узел «{focus_mode}» (с учётом фильтров слева).")
         else:
