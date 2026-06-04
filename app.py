@@ -80,7 +80,7 @@ def main():
     load_choice = st.sidebar.selectbox(
         "Сколько строк загружать из базы",
         ["50 строк", "200 строк", "500 строк", "1000 строк", "Все строки"],
-        index=4,
+        index=2,
         help="Больше строк = больше данных и более широкий диапазон годов / TRL, но медленнее загрузка.",
     )
     load_limit = {
@@ -102,15 +102,17 @@ def main():
         try:
             # Напрямую грузим данные, минуя тяжелый пайплайн
             loader = DataLoader()
-            df = loader.load_data()
-            if df is not None and not df.empty and limit > 0:
-                df = df.head(limit)
-            return df
+            df_all = loader.load_data()
+            if df_all is not None and not df_all.empty and limit > 0:
+                df = df_all.head(limit)
+            else:
+                df = df_all
+            return df_all, df
         except Exception as e:
             st.error(f"Ошибка прямой загрузки: {e}")
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
 
-    df = load_data(load_limit)
+    df_all, df = load_data(load_limit)
     if df is None or df.empty:
         st.warning("База данных пуста! Запустите reset_db.py и ingest_data.py")
         return
@@ -122,9 +124,9 @@ def main():
     search_query = st.sidebar.text_input("Поиск (по всем полям)", "")
 
     # Фильтр по годам
-    if 'publication_year' in df.columns and df['publication_year'].notna().any():
-        min_year = int(df['publication_year'].min())
-        max_year = int(df['publication_year'].max())
+    if 'publication_year' in df_all.columns and df_all['publication_year'].notna().any():
+        min_year = int(df_all['publication_year'].min())
+        max_year = int(df_all['publication_year'].max())
         if min_year < max_year:
             years = st.sidebar.slider("Год публикации", min_year, max_year, (min_year, max_year))
         else:
@@ -134,8 +136,8 @@ def main():
 
     # Фильтр по TRL
     available_trls = []
-    if 'trl_level' in df.columns:
-        available_trls = sorted(df['trl_level'].dropna().unique())
+    if 'trl_level' in df_all.columns:
+        available_trls = sorted(df_all['trl_level'].dropna().unique())
     trl_filter = st.sidebar.multiselect("Уровень TRL", available_trls, default=available_trls)
 
     # По умолчанию — полная таблица; снимите галочку для компактного вида (5 столбцов)
